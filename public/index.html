@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scraped Data</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+        h1, h2 { color: #333; }
+        pre { background-color: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Scraped Data</h1>
+    <button id="scrapeButton">Scrape Data</button>
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('scrapeButton').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/scrape');
+                const data = await response.json();
+                document.getElementById('output').innerHTML = `
+                    <h2>PacientesEnEspera</h2>
+                    <pre>${JSON.stringify(data.PacientesEnEspera, null, 2)}</pre>
+                    <h2>PacientesCategorizados</h2>
+                    <pre>${JSON.stringify(data.PacientesCategorizados, null, 2)}</pre>
+                    <h2>PacientesEnBox</h2>
+                    <pre>${JSON.stringify(data.PacientesEnBox, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('output').innerHTML = 'An error occurred while fetching data.';
+            }
+        });
+    </script>
+</body>
+</html>
