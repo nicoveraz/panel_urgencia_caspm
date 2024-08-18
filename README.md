@@ -1,4 +1,4 @@
-# panel_caspm
+# panel_urgencia_caspm
 Pantalla urgencia Andes Salud Puerto Montt
 
 ## Objetivo
