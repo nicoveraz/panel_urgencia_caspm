@@ -266,7 +266,7 @@
                         <div id="bgGrid" class="grid bg-grid"></div>
                     </div>
                 </div>
-
+        <script src="layout.js"></script>
         <script>
             const hospitalData = {
                 PacientesEnEspera: [],
@@ -278,55 +278,38 @@
                 displayBoxGrid();
                 displayBGGrid();
                 displayTable("esperaTable", hospitalData.PacientesEnEspera);
-                displayTable(
-                    "categorizadosTable",
-                    hospitalData.PacientesCategorizados,
-                );
+                displayTable("categorizadosTable", hospitalData.PacientesCategorizados);
                 updateCounts();
             }
 
             function updateCounts() {
-                const boxCount = hospitalData.PacientesEnBox.filter(
-                    (p) => !p.empty && p.box,
-                ).length;
-                const bgCount = hospitalData.PacientesEnBox.filter(
-                    (p) => !p.empty && p.bg,
-                ).length;
+                const boxCount = hospitalData.PacientesEnBox.filter(p => !p.empty && p.box).length;
+                const bgCount = hospitalData.PacientesEnBox.filter(p => !p.empty && p.bg).length;
                 const esperaCount = hospitalData.PacientesEnEspera.length;
-                const categorizadosCount =
-                    hospitalData.PacientesCategorizados.length;
+                const categorizadosCount = hospitalData.PacientesCategorizados.length;
 
-                document.getElementById("boxCount").textContent =
-                    `Total: ${boxCount}`;
-                document.getElementById("bgCount").textContent =
-                    `Total: ${bgCount}`;
-                document.getElementById("esperaCount").textContent =
-                    `Total: ${esperaCount}`;
-                document.getElementById("categorizadosCount").textContent =
-                    `Total: ${categorizadosCount}`;
+                document.getElementById("boxCount").textContent = `Total: ${boxCount}`;
+                document.getElementById("bgCount").textContent = `Total: ${bgCount}`;
+                document.getElementById("esperaCount").textContent = `Total: ${esperaCount}`;
+                document.getElementById("categorizadosCount").textContent = `Total: ${categorizadosCount}`;
             }
+
             function displayBoxGrid() {
                 const grid = document.getElementById("boxGrid");
                 grid.innerHTML = "";
-                for (let i = 1; i <= 18; i++) {
-                    const patient = hospitalData.PacientesEnBox.find(
-                        (p) => p.box === i,
-                    ) || { empty: true, box: i };
-                    grid.innerHTML += createCard(patient, i);
-                }
+                emergencyRoomLayout.boxes.forEach(box => {
+                    const patient = hospitalData.PacientesEnBox.find(p => p.box === box.id) || { empty: true, box: box.id };
+                    grid.innerHTML += createCard(patient, box.id);
+                });
             }
 
             function displayBGGrid() {
                 const grid = document.getElementById("bgGrid");
                 grid.innerHTML = "";
-                ["A1", "A2", "A3", "A4", "A5", "B1", "B2", "B3", "B4"].forEach(
-                    (bg) => {
-                        const patient = hospitalData.PacientesEnBox.find(
-                            (p) => p.bg === bg,
-                        ) || { empty: true, bg: bg };
-                        grid.innerHTML += createCard(patient, bg);
-                    },
-                );
+                emergencyRoomLayout.bergers.forEach(bg => {
+                    const patient = hospitalData.PacientesEnBox.find(p => p.bg === bg.id) || { empty: true, bg: bg.id };
+                    grid.innerHTML += createCard(patient, bg.id);
+                });
             }
 
             // Helper function to convert a string to camel case and handle special characters
