@@ -224,10 +224,9 @@
             white-space: nowrap;
         }
         </style>
-        </head>
     </head>
     <body>
-        <h1>Urgencia Clínica Andes Salud Puerto Montt</h1>
+        <h1>Urgencia Clínica Andes Salud Puerto Montt</h1> <button id="scrapeButton">Scrape Data</button>
                 <div class="container">
                     <div class="main-content">
                         <div class="left-section">
@@ -268,25 +267,41 @@
                 </div>
         <script src="layout.js"></script>
         <script>
-            const hospitalData = {
-                PacientesEnEspera: [],
-                PacientesCategorizados: [],
-                PacientesEnBox: [],
-            };
+            var hospitalData = {};
+            document.getElementById('scrapeButton').addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/scrape');
+                    hospitalData = await response.json();
+                    console.log('Hospital data:', hospitalData);
+                    displayData();
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('output').innerHTML = 'An error occurred while fetching data.';
+                }
+            });
 
             function displayData() {
+                console.log('Displaying data...', hospitalData);
+                if (!hospitalData || typeof hospitalData !== 'object') {
+                    console.error('Invalid hospital data');
+                    return;
+                }
                 displayBoxGrid();
                 displayBGGrid();
-                displayTable("esperaTable", hospitalData.PacientesEnEspera);
-                displayTable("categorizadosTable", hospitalData.PacientesCategorizados);
+                displayTable("esperaTable", hospitalData.PacientesEnEspera || []);
+                displayTable("categorizadosTable", hospitalData.PacientesCategorizados || []);
                 updateCounts();
             }
 
+
             function updateCounts() {
-                const boxCount = hospitalData.PacientesEnBox.filter(p => !p.empty && p.box).length;
-                const bgCount = hospitalData.PacientesEnBox.filter(p => !p.empty && p.bg).length;
-                const esperaCount = hospitalData.PacientesEnEspera.length;
-                const categorizadosCount = hospitalData.PacientesCategorizados.length;
+                const patients = hospitalData.PacientesEnBox || [];
+                console.log('Updating counts, patients:', patients);
+                const boxCount = patients.filter(p => p.box && p.box.startsWith('C-')).length;
+                const bgCount = patients.filter(p => p.bg || (p.box && p.box.startsWith('BG-'))).length;
+                console.log('Box count:', boxCount, 'BG count:', bgCount);
+                const esperaCount = (hospitalData.PacientesEnEspera || []).length;
+                const categorizadosCount = (hospitalData.PacientesCategorizados || []).length;
 
                 document.getElementById("boxCount").textContent = `Total: ${boxCount}`;
                 document.getElementById("bgCount").textContent = `Total: ${bgCount}`;
@@ -295,21 +310,53 @@
             }
 
             function displayBoxGrid() {
+                console.log('Displaying Box Grid...');
                 const grid = document.getElementById("boxGrid");
                 grid.innerHTML = "";
+                if (!emergencyRoomLayout || !emergencyRoomLayout.boxes) {
+                    console.error('emergencyRoomLayout or boxes not defined');
+                    return;
+                }
+                const patients = hospitalData.PacientesEnBox || [];
                 emergencyRoomLayout.boxes.forEach(box => {
-                    const patient = hospitalData.PacientesEnBox.find(p => p.box === box.id) || { empty: true, box: box.id };
-                    grid.innerHTML += createCard(patient, box.id);
+                    const boxName = `C-${box.id}A`;
+                    const patient = patients.find(p => p.box === boxName) || { empty: true, box: boxName };
+                    grid.innerHTML += createCard(patient, boxName, 'box');
                 });
             }
 
             function displayBGGrid() {
+                console.log('Displaying BG Grid...');
                 const grid = document.getElementById("bgGrid");
+                if (!grid) {
+                    console.error('BG Grid element not found');
+                    return;
+                }
                 grid.innerHTML = "";
+                if (!emergencyRoomLayout || !emergencyRoomLayout.bergers) {
+                    console.error('emergencyRoomLayout or bergers not defined');
+                    return;
+                }
+                const patients = hospitalData.PacientesEnBox || [];
+                console.log('All patients:', patients);
+
                 emergencyRoomLayout.bergers.forEach(bg => {
-                    const patient = hospitalData.PacientesEnBox.find(p => p.bg === bg.id) || { empty: true, bg: bg.id };
-                    grid.innerHTML += createCard(patient, bg.id);
+                    const bgName = `BG-${bg.id}`;
+                    console.log('Processing berger:', bgName);
+                    const patient = patients.find(p => {
+                        return p.bg === bgName || p.box === bgName || 
+                               (p.bg && p.bg.includes(bg.id)) || 
+                               (p.box && p.box.includes(bg.id));
+                    });
+                    console.log('Found patient for', bgName, ':', patient);
+                    
+                    const cardData = patient || { empty: true, bg: bgName };
+                    const cardHtml = createCard(cardData, bgName, 'berger');
+                    console.log('Created card HTML:', cardHtml);
+                    grid.innerHTML += cardHtml;
                 });
+
+                console.log('Final BG Grid innerHTML:', grid.innerHTML);
             }
 
             // Helper function to convert a string to camel case and handle special characters
@@ -352,9 +399,10 @@
             }
 
 
-            function createCard(patient, identifier) {
+            function createCard(patient, identifier, type) {
+                console.log('Creating card for:', patient, identifier, type);
                 if (!patient || patient.empty) {
-                    return `<div class="card empty-box">${patient.bg ? "BG" : "Box"} ${identifier}: Disponible</div>`;
+                    return `<div class="card empty-box">${identifier}: Disponible</div>`;
                 }
 
                 let esiClass = "esi3"; // Default to ESI3 if not specified
@@ -368,15 +416,17 @@
                 const patientNameClass = patient.mutual ? 'mutual-patient' : '';
                 const doctorName = patient.medico ? toCamelCase(patient.medico) : 'Sin Asignar';
 
-                return `
-                    <div class="card">
-                        <h3>${patient.bg ? "BG" : "Box"} ${identifier} <div class="chip ${esiClass}">${patient.categoria}</div></h3>
-                        <p><strong class="${patientNameClass}">${patient.paciente}</strong> (${patient.edad})</p>
-                        <p>${patient.motivoConsulta}</p>
+                const cardHtml = `
+                    <div class="card ${type}-card">
+                        <h3>${identifier} <div class="chip ${esiClass}">${patient.categoria || ''}</div></h3>
+                        <p><strong class="${patientNameClass}">${patient.paciente || 'N/A'}</strong> (${patient.edad || ''})</p>
+                        <p>${patient.motivoConsulta || ''}</p>
                         <p class="med">Med: ${doctorName}</p>
-                        <p>Tiempo total: ${patient.tiempoAcumulado}</p>
+                        <p>Tiempo total: ${patient.tiempoAcumulado || ''}</p>
                     </div>
                 `;
+                console.log('Card HTML:', cardHtml);
+                return cardHtml;
             }
 
             function displayTable(elementId, data) {
@@ -407,7 +457,16 @@
                 element.innerHTML = table;
             }
 
-            window.onload = displayData;
+            window.onload = async () => {
+                try {
+                    const response = await fetch('/api/scrape');
+                    hospitalData = await response.json();
+                    console.log('Initial hospital data:', hospitalData);
+                    displayData();
+                } catch (error) {
+                    console.error('Error fetching initial data:', error);
+                }
+            };
         </script>
     </body>
 </html>

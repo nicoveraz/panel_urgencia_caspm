@@ -20,14 +20,14 @@ const emergencyRoomLayout = {
         { id: 18, type: 'box' }
     ],
     bergers: [
-        { id: 'A1', type: 'bg' },
-        { id: 'A2', type: 'bg' },
-        { id: 'A3', type: 'bg' },
-        { id: 'B1', type: 'bg' },
-        { id: 'B2', type: 'bg' },
-        { id: 'B3', type: 'bg' },
-        { id: 'C1', type: 'bg' },
-        { id: 'C2', type: 'bg' },
-        { id: 'C3', type: 'bg' }
+        { id: 'A-1', type: 'bg'},
+        { id: 'A-2', type: 'bg'},
+        { id: 'A-3', type: 'bg'},
+        { id: 'B-1', type: 'bg'},
+        { id: 'B-2', type: 'bg'},
+        { id: 'B-3', type: 'bg'},
+        { id: 'C-1', type: 'bg'},
+        { id: 'C-2', type: 'bg'},
+        { id: 'C-3', type: 'bg'},
     ]
 };
