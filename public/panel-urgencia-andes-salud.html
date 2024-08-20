@@ -224,10 +224,9 @@
             white-space: nowrap;
         }
         </style>
-        </head>
     </head>
     <body>
-        <h1>Urgencia Clínica Andes Salud Puerto Montt</h1>
+        <h1>Urgencia Clínica Andes Salud Puerto Montt</h1> <button id="scrapeButton">Scrape Data</button>
                 <div class="container">
                     <div class="main-content">
                         <div class="left-section">
@@ -266,115 +265,78 @@
                         <div id="bgGrid" class="grid bg-grid"></div>
                     </div>
                 </div>
-
+        <script src="layout.js"></script>
         <script>
-            const hospitalData = {
-                PacientesEnEspera: [],
-                PacientesCategorizados: [],
-                PacientesEnBox: [],
-            };
+            var hospitalData = {};
+            
+            document.getElementById('scrapeButton').addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/scrape');
+                    hospitalData = await response.json();
+                    displayData();
+                } catch (error) {
+                    console.error('Error al obtener datos:', error);
+                    document.getElementById('output').innerHTML = 'Ocurrió un error al obtener los datos.';
+                }
+            });
 
             function displayData() {
                 displayBoxGrid();
                 displayBGGrid();
                 displayTable("esperaTable", hospitalData.PacientesEnEspera);
-                displayTable(
-                    "categorizadosTable",
-                    hospitalData.PacientesCategorizados,
-                );
+                displayTable("categorizadosTable", hospitalData.PacientesCategorizados);
                 updateCounts();
             }
 
-            function updateCounts() {
-                const boxCount = hospitalData.PacientesEnBox.filter(
-                    (p) => !p.empty && p.box,
-                ).length;
-                const bgCount = hospitalData.PacientesEnBox.filter(
-                    (p) => !p.empty && p.bg,
-                ).length;
-                const esperaCount = hospitalData.PacientesEnEspera.length;
-                const categorizadosCount =
-                    hospitalData.PacientesCategorizados.length;
-
-                document.getElementById("boxCount").textContent =
-                    `Total: ${boxCount}`;
-                document.getElementById("bgCount").textContent =
-                    `Total: ${bgCount}`;
-                document.getElementById("esperaCount").textContent =
-                    `Total: ${esperaCount}`;
-                document.getElementById("categorizadosCount").textContent =
-                    `Total: ${categorizadosCount}`;
-            }
             function displayBoxGrid() {
+                // Mostrar la cuadrícula de boxes
                 const grid = document.getElementById("boxGrid");
                 grid.innerHTML = "";
-                for (let i = 1; i <= 18; i++) {
-                    const patient = hospitalData.PacientesEnBox.find(
-                        (p) => p.box === i,
-                    ) || { empty: true, box: i };
-                    grid.innerHTML += createCard(patient, i);
+                if (!emergencyRoomLayout || !emergencyRoomLayout.boxes) {
+                    console.error('emergencyRoomLayout o boxes no definidos');
+                    return;
                 }
+                const patients = hospitalData.PacientesEnBox || [];
+                emergencyRoomLayout.boxes.forEach(box => {
+                    const boxName = `C-${box.id}A`;
+                    const patient = patients.find(p => p.box === boxName) || { empty: true, box: boxName };
+                    grid.innerHTML += createCard(patient, boxName, 'box');
+                });
             }
 
             function displayBGGrid() {
+                // Mostrar la cuadrícula de bergers
                 const grid = document.getElementById("bgGrid");
+                if (!grid) {
+                    console.error('Elemento bgGrid no encontrado');
+                    return;
+                }
                 grid.innerHTML = "";
-                ["A1", "A2", "A3", "A4", "A5", "B1", "B2", "B3", "B4"].forEach(
-                    (bg) => {
-                        const patient = hospitalData.PacientesEnBox.find(
-                            (p) => p.bg === bg,
-                        ) || { empty: true, bg: bg };
-                        grid.innerHTML += createCard(patient, bg);
-                    },
-                );
+                if (!emergencyRoomLayout || !emergencyRoomLayout.bergers) {
+                    console.error('emergencyRoomLayout o bergers no definidos');
+                    return;
+                }
+                const patients = hospitalData.PacientesEnBox || [];
+
+                emergencyRoomLayout.bergers.forEach(bg => {
+                    const bgName = `BG-${bg.id}`;
+                    const patient = patients.find(p => {
+                        return p.bg === bgName || p.box === bgName || 
+                               (p.bg && p.bg.includes(bg.id)) || 
+                               (p.box && p.box.includes(bg.id));
+                    });
+                    const cardData = patient || { empty: true, bg: bgName };
+                    grid.innerHTML += createCard(cardData, bgName, 'berger');
+                });
             }
 
-            // Helper function to convert a string to camel case and handle special characters
-            function toCamelCase(str) {
-                if (!str) return '';
-
-                console.log('Input to toCamelCase:', str);
-
-                // Remove center dot (U+00B7) from the input string
-                str = str.replace(/\u00B7/g, '');
-                str = str.replace(/\u0081/g, '');
-                console.log('After removing center dot:', str);
-
-                // Normalize the string to decomposed form (NFD)
-                str = str.normalize('NFD');
-                console.log('After normalization (NFD):', str);
-
-                // Replace specific problematic decompositions manually if necessary
-                // For instance, handle 'ã' (a + combining tilde) to 'á' (a + combining acute accent)
-                str = str.replace(/a\u0303/g, 'a\u0301');
-                console.log('After replacing specific decompositions:', str);
-
-                // Remove all combining marks except the acute accent
-                str = str.replace(/([\u0300-\u036F])(?!\u0301)/g, '');
-                console.log('After removing combining marks:', str);
-
-                // Normalize back to composed form (NFC)
-                str = str.normalize('NFC');
-                console.log('After normalization (NFC):', str);
-
-                // Convert to lowercase
-                str = str.toLowerCase();
-                console.log('After converting to lowercase:', str);
-
-                // Convert to CamelCase
-                const result = str.split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                return result;
-            }
-
-
-            function createCard(patient, identifier) {
+            function createCard(patient, identifier, type) {
+                // Crear tarjeta para un paciente
                 if (!patient || patient.empty) {
-                    return `<div class="card empty-box">${patient.bg ? "BG" : "Box"} ${identifier}: Disponible</div>`;
+                    return `<div class="card empty-box">${identifier}: Disponible</div>`;
                 }
 
-                let esiClass = "esi3"; // Default to ESI3 if not specified
+                let esiClass = "esi3"; // Por defecto ESI3 si no se especifica
                 if (patient.categoria) {
                     const esiLevel = patient.categoria.match(/\d+/);
                     if (esiLevel) {
@@ -386,17 +348,32 @@
                 const doctorName = patient.medico ? toCamelCase(patient.medico) : 'Sin Asignar';
 
                 return `
-                    <div class="card">
-                        <h3>${patient.bg ? "BG" : "Box"} ${identifier} <div class="chip ${esiClass}">${patient.categoria}</div></h3>
-                        <p><strong class="${patientNameClass}">${patient.paciente}</strong> (${patient.edad})</p>
-                        <p>${patient.motivoConsulta}</p>
+                    <div class="card ${type}-card">
+                        <h3>${identifier} <div class="chip ${esiClass}">${patient.categoria || ''}</div></h3>
+                        <p><strong class="${patientNameClass}">${patient.paciente || 'N/A'}</strong> (${patient.edad || ''})</p>
+                        <p>${patient.motivoConsulta || ''}</p>
                         <p class="med">Med: ${doctorName}</p>
-                        <p>Tiempo total: ${patient.tiempoAcumulado}</p>
+                        <p>Tiempo total: ${patient.tiempoAcumulado || ''}</p>
                     </div>
                 `;
             }
 
+            function updateCounts() {
+                // Actualizar conteos de pacientes
+                const patients = hospitalData.PacientesEnBox || [];
+                const boxCount = patients.filter(p => p.box && p.box.startsWith('C-')).length;
+                const bgCount = patients.filter(p => p.bg || (p.box && p.box.startsWith('BG-'))).length;
+                const esperaCount = (hospitalData.PacientesEnEspera || []).length;
+                const categorizadosCount = (hospitalData.PacientesCategorizados || []).length;
+
+                document.getElementById("boxCount").textContent = `Total: ${boxCount}`;
+                document.getElementById("bgCount").textContent = `Total: ${bgCount}`;
+                document.getElementById("esperaCount").textContent = `Total: ${esperaCount}`;
+                document.getElementById("categorizadosCount").textContent = `Total: ${categorizadosCount}`;
+            }
+
             function displayTable(elementId, data) {
+                // Mostrar tabla de pacientes
                 const element = document.getElementById(elementId);
                 if (data.length === 0) {
                     element.innerHTML = '<div class="card">No hay datos disponibles.</div>';
@@ -424,7 +401,26 @@
                 element.innerHTML = table;
             }
 
-            window.onload = displayData;
+            function toCamelCase(str) {
+                // Convertir string a CamelCase
+                if (!str) return '';
+                str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                str = str.toLowerCase().replace(/(?:^\w|[A-Z]|\b\w)/g, function(word, index) {
+                    return index === 0 ? word.toUpperCase() : word.toLowerCase();
+                }).replace(/\s+/g, '');
+                return str;
+            }
+
+            window.onload = async () => {
+                // Cargar datos iniciales al cargar la página
+                try {
+                    const response = await fetch('/api/scrape');
+                    hospitalData = await response.json();
+                    displayData();
+                } catch (error) {
+                    console.error('Error al obtener datos iniciales:', error);
+                }
+            };
         </script>
     </body>
 </html>
