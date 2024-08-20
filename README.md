@@ -23,3 +23,13 @@ Esta separación permite avanzar en la implementación independiente del acceso/
 - [ ] Notificación procedimientos pendientes (box, lab, etc, ¿por separado?)
 - [ ] Alta desde box (actualmente sale de pantalla con alta médica)
 - [ ] Eliminar necesidad de servidor nodejs (requiere rehacer servidor actual)
+
+
+## Run
+
+```
+npm i
+node server.js
+```
+
+Navegar a localhost:***puerto***
