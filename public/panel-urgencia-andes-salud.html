@@ -223,10 +223,15 @@
             overflow: hidden;
             white-space: nowrap;
         }
+        #fetchtime {
+            font-size: 0.6em;
+            color: rgba(255, 255, 255, 0.75);
+            margin-left: 8px;
+        }
         </style>
     </head>
     <body>
-        <h1>Urgencia Clínica Andes Salud Puerto Montt</h1> <button id="scrapeButton">Scrape Data</button>
+        <h1>Urgencia Clínica Andes Salud Puerto Montt <span id="fetchtime"></span></h1>
                 <div class="container">
                     <div class="main-content">
                         <div class="left-section">
@@ -269,16 +274,32 @@
         <script>
             var hospitalData = {};
             
-            document.getElementById('scrapeButton').addEventListener('click', async () => {
+            let intervalId;
+
+            function startScraping() {
+                // Perform initial scrape
+                scrapeData();
+                
+                // Set up interval for subsequent scrapes
+                intervalId = setInterval(scrapeData, 20000);
+            }
+
+            async function scrapeData() {
                 try {
                     const response = await fetch('/api/scrape');
                     hospitalData = await response.json();
+                    const time = new Date().toLocaleTimeString();
+                    console.log('Datos obtenidos:', time);
+                    document.getElementById('fetchtime').textContent = `Última actualización: ${time}`;
                     displayData();
                 } catch (error) {
                     console.error('Error al obtener datos:', error);
                     document.getElementById('output').innerHTML = 'Ocurrió un error al obtener los datos.';
                 }
-            });
+            }
+
+            // Start scraping when the page loads
+            window.addEventListener('load', startScraping);
 
             function displayData() {
                 displayBoxGrid();
@@ -345,7 +366,7 @@
                 }
 
                 const patientNameClass = patient.mutual ? 'mutual-patient' : '';
-                const doctorName = patient.medico ? toCamelCase(patient.medico) : 'Sin Asignar';
+                const doctorName = patient.medico ? toCamelCase(patient.medico) : '';
 
                 return `
                     <div class="card ${type}-card">
@@ -402,25 +423,13 @@
             }
 
             function toCamelCase(str) {
-                // Convertir string a CamelCase
                 if (!str) return '';
                 str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                str = str.toLowerCase().replace(/(?:^\w|[A-Z]|\b\w)/g, function(word, index) {
-                    return index === 0 ? word.toUpperCase() : word.toLowerCase();
-                }).replace(/\s+/g, '');
-                return str;
+                return str.toLowerCase().split(/\s+/).map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
             }
 
-            window.onload = async () => {
-                // Cargar datos iniciales al cargar la página
-                try {
-                    const response = await fetch('/api/scrape');
-                    hospitalData = await response.json();
-                    displayData();
-                } catch (error) {
-                    console.error('Error al obtener datos iniciales:', error);
-                }
-            };
         </script>
     </body>
 </html>
