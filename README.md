@@ -32,7 +32,7 @@ npm i
 node server.js
 ```
 
-Navegar a localhost:***puerto***
+Navegar a localhost:***puerto***/panel-urgencia-andes-salud.html
 
 #### Copyright
 
