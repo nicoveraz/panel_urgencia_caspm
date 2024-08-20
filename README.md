@@ -16,6 +16,24 @@ Esta separación permite avanzar en la implementación independiente del acceso/
 
 ## Roadmap
 
+- [ ] Semáforo, tiempo de espera a triage
+- [ ] Semáforo, tiempo de espera a box
+- [ ] Semáforo, tiempo de espera a médico
 - [ ] Distribución boxes en JSON aparte (sistema susceptible de modificación para uso en otro centro de la red o en caso de modificación de planta física) 
-- [ ] Notificación procedimientos pendientes
+- [ ] Notificación procedimientos pendientes (box, lab, etc, ¿por separado?)
+- [ ] Alta desde box (actualmente sale de pantalla con alta médica)
 - [ ] Eliminar necesidad de servidor nodejs (requiere rehacer servidor actual)
+
+
+## Run
+
+```
+npm i
+node server.js
+```
+
+Navegar a localhost:***puerto***/panel-urgencia-andes-salud.html
+
+#### Copyright
+
+© 2024, Nicolás Vera
