@@ -5,7 +5,7 @@ Pantalla urgencia Andes Salud Puerto Montt
 
 Panel que muestra los pacientes en atención del servicio de urgencia, a diferencia del modelo actual, que es una tabla, este proyecto incorpora la distribución de boxes para saber cúales están disponibles en todo momento. Esto para facilitar la gestión en momentos de alta ocupación/demanda
 
-![panel](https://github.com/nicoveraz/panel_urgencia_caspm/tree/main/assets/panel.jpg)
+![panel](assets/panel.jpg)
 
 ## Método
 
