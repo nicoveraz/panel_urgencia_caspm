@@ -34,8 +34,17 @@ async function scrapeData() {
         const data = {
             PacientesEnEspera: [],
             PacientesCategorizados: [],
-            PacientesEnBox: []
+            PacientesEnBox: [],
+            FirstRowText: ''
         };
+
+        spanText = $('span').first().text().trim();;
+        // Extract N° Altas using regex
+        const altasRegex = /N° Altas: (\d+)/;
+        const altasMatch = spanText.match(altasRegex);
+        const numeroAltas = altasMatch ? parseInt(altasMatch[1]) : null;
+
+        data.FirstRowText = numeroAltas;
 
         // Helper function to decode HTML entities and trim
         const decodeAndTrim = (text) => $('<div>').html(text).text().trim();

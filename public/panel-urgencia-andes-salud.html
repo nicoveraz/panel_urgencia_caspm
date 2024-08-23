@@ -228,10 +228,15 @@
             color: rgba(255, 255, 255, 0.75);
             margin-left: 8px;
         }
+        #altas {
+            position: absolute;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.75);
+        }
         </style>
     </head>
     <body>
-        <h1>Urgencia Clínica Andes Salud Puerto Montt <span id="fetchtime"></span></h1>
+        <h1>Urgencia Clínica Andes Salud Puerto Montt <span id="fetchtime"></span><span id="altas"></span></h1>
                 <div class="container">
                     <div class="main-content">
                         <div class="left-section">
@@ -307,6 +312,11 @@
                 displayTable("esperaTable", hospitalData.PacientesEnEspera);
                 displayTable("categorizadosTable", hospitalData.PacientesCategorizados);
                 updateCounts();
+                displayFirstRowText();
+            }
+
+            function displayFirstRowText() {
+                document.getElementById('altas').textContent = 'N° de Altas:' + hospitalData.FirstRowText;
             }
 
             function displayBoxGrid() {
@@ -319,9 +329,9 @@
                 }
                 const patients = hospitalData.PacientesEnBox || [];
                 emergencyRoomLayout.boxes.forEach(box => {
-                    const boxName = `C-${box.id}A`;
+                    const boxName = `C-${box.id}`;
                     const patient = patients.find(p => p.box === boxName) || { empty: true, box: boxName };
-                    grid.innerHTML += createCard(patient, boxName, 'box');
+                    grid.innerHTML += createCard(patient, box.id, 'box');
                 });
             }
 
@@ -383,7 +393,7 @@
                 // Actualizar conteos de pacientes
                 const patients = hospitalData.PacientesEnBox || [];
                 const boxCount = patients.filter(p => p.box && p.box.startsWith('C-')).length;
-                const bgCount = patients.filter(p => p.bg || (p.box && p.box.startsWith('BG-'))).length;
+                const bgCount = patients.filter(p => p.bg || (p.box && p.box.startsWith('BG'))).length;
                 const esperaCount = (hospitalData.PacientesEnEspera || []).length;
                 const categorizadosCount = (hospitalData.PacientesCategorizados || []).length;
 
@@ -424,10 +434,20 @@
 
             function toCamelCase(str) {
                 if (!str) return '';
-                str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                return str.toLowerCase().split(/\s+/).map(word => 
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ');
+                
+                // Split the string into words
+                return str.toLowerCase().split(/\s+/).map(word => {
+                    // Get the first character and the rest of the word
+                    let firstChar = word.charAt(0);
+                    let rest = word.slice(1);
+                    
+                    // Capitalize the first character, handling Unicode characters
+                    firstChar = firstChar.normalize('NFD').replace(/[\u0300-\u036f]/, '').toUpperCase() + 
+                                firstChar.normalize('NFD').slice(1);
+                    
+                    // Combine the capitalized first character with the rest of the word
+                    return firstChar + rest;
+                }).join(' ');
             }
 
         </script>
