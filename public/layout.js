@@ -31,3 +31,4 @@ const emergencyRoomLayout = {
         { id: 'C-3', type: 'bg'},
     ]
 };
+

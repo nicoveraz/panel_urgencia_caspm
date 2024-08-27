@@ -24,7 +24,6 @@ Esta separación permite avanzar en la implementación independiente del acceso/
 - [ ] Alta desde box (actualmente sale de pantalla con alta médica)
 - [ ] Eliminar necesidad de servidor nodejs (requiere rehacer servidor actual)
 
-
 ## Run
 
 ```
