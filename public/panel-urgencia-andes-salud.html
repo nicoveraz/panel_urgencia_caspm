@@ -354,8 +354,8 @@
                     const bgName = `BG-${bg.id}`;
                     const patient = patients.find(p => {
                         return p.bg === bgName || p.box === bgName || 
-                               (p.bg && p.bg.includes(bg.id)) || 
-                               (p.box && p.box.includes(bg.id));
+                               (p.bg && p.bg.includes(bg.id)) //|| //pendiente revisar coincidencia boxes con BG-C
+                               //(p.box && p.box.includes(bg.id));
                     });
                     const cardData = patient || { empty: true, bg: bgName };
                     grid.innerHTML += createCard(cardData, bgName, 'berger');
