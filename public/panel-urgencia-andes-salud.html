@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>URG CASPM</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=lab_research,personal_injury,pill,radiology,timer,ward" />
         <style>
         :root {
             --primary-color: #1976d2;
@@ -103,6 +104,7 @@
             flex-direction: column;
             justify-content: space-between;
             overflow-y: auto;
+            position: relative;
         }
 
         .card h3 {
@@ -111,6 +113,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background-color: var(--primary-color);
+            color: var(--on-primary-color);
+            padding: 8px;
+            margin: -16px -16px 8px -16px;  /* Negative margin to extend to card edges */
+            border-radius: 4px 4px 0 0;  /* Round top corners */
+        }
+
+        /* Adjust chip styling when inside card header */
+        .card h3 .chip {
+            margin: 0;  /* Remove margins since we're in a header */
+            height: 24px;  /* Slightly smaller height */
+            line-height: 24px;  /* Match the new height */
+            font-size: 12px;  /* Slightly smaller font */
         }
 
         .card p {
@@ -168,8 +183,10 @@
 
         th, td {
             text-align: left;
-            padding: 12px 16px;
+            padding: 6px 8px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+            font-size: 0.9em;
+            line-height: 1.2;
         }
 
         th {
@@ -226,13 +243,102 @@
         #fetchtime {
             font-size: 0.6em;
             color: rgba(255, 255, 255, 0.75);
-            margin-right: 18px;
+            margin-right: 72px;
         }
         #derecha {
             position: absolute;
             display: inline-block;
             right: 20px;
             color: rgba(255, 255, 255, 0.75);
+        }
+
+        .table-scroll table p {
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .right-section .table-container {
+            min-height: 0;
+        }
+
+        .right-section table {
+            white-space: nowrap;
+        }
+
+        .right-section td {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .material-symbols-outlined {
+            font-size: 24px;
+            vertical-align: middle;
+            margin-left: 4px;
+            font-variation-settings: 'wght' 400;
+            transition: font-variation-settings 0.3s ease;
+        }
+
+        .material-symbols-outlined.disabled {
+            opacity: 0.2;
+            font-variation-settings: 'wght' 100;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0.3;
+                font-variation-settings: 'wght' 300;
+            }
+            50% {
+                opacity: 1;
+                font-variation-settings: 'wght' 700;
+            }
+            100% {
+                opacity: 0.3;
+                font-variation-settings: 'wght' 300;
+            }
+        }
+
+        .material-symbols-outlined:not(.disabled):not(.timer-icon):not(.inpatient-icon) {
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        .timer-icon {
+            font-size: 24px !important;
+            vertical-align: middle;
+            margin-left: 0px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            font-variation-settings: 'wght' 500;
+        }
+
+        .timer-green { color: #4CAF50; }
+        .timer-yellow { color: #FFC107; }
+        .timer-red {
+            color: #F44336;
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        .timer-text {
+            font-size: 18px;
+            color: rgba(0, 0, 0, 0.75);
+            font-weight: 600;
+        }
+
+        .inpatient-icon {
+            font-size: 24px !important;
+            color: var(--primary-color);
+            opacity: 0.2;
+            font-variation-settings: 'wght' 100;
+            float: right;
+            margin-top: 2px;
         }
         </style>
     </head>
@@ -279,15 +385,15 @@
         <script src="layout.js"></script>
         <script>
             var hospitalData = {};
-            
+
             let intervalId;
 
             function startScraping() {
                 // Perform initial scrape
                 scrapeData();
-                
+
                 // Set up interval for subsequent scrapes
-                intervalId = setInterval(scrapeData, 20000);
+                intervalId = setInterval(scrapeData, 30000);
             }
 
             async function scrapeData() {
@@ -353,7 +459,7 @@
                 emergencyRoomLayout.bergers.forEach(bg => {
                     const bgName = `BG-${bg.id}`;
                     const patient = patients.find(p => {
-                        return p.bg === bgName || p.box === bgName || 
+                        return p.bg === bgName || p.box === bgName ||
                                (p.bg && p.bg.includes(bg.id)) //|| //pendiente revisar coincidencia boxes con BG-C
                                //(p.box && p.box.includes(bg.id));
                     });
@@ -363,12 +469,11 @@
             }
 
             function createCard(patient, identifier, type) {
-                // Crear tarjeta para un paciente
                 if (!patient || patient.empty) {
                     return `<div class="card empty-box">${identifier}: Disponible</div>`;
                 }
 
-                let esiClass = "esi3"; // Por defecto ESI3 si no se especifica
+                let esiClass = "esi3";
                 if (patient.categoria) {
                     const esiLevel = patient.categoria.match(/\d+/);
                     if (esiLevel) {
@@ -376,16 +481,43 @@
                     }
                 }
 
+                // Parse time and determine color
+                let timerColor = 'timer-green';
+                let formattedTime = '';
+                if (patient.tiempoAcumulado) {
+                    const [hours, minutes] = patient.tiempoAcumulado.split(':').map(Number);
+                    const totalMinutes = hours * 60 + minutes;
+                    formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    if (totalMinutes > 60) {
+                        timerColor = 'timer-red';
+                    } else if (totalMinutes > 30) {
+                        timerColor = 'timer-yellow';
+                    }
+                }
+
                 const patientNameClass = patient.mutual ? 'mutual-patient' : '';
                 const doctorName = patient.medico ? toCamelCase(patient.medico) : '';
+                const iconClass = patient.procedimientosPendientes > 0 ? '' : 'disabled';
 
                 return `
                     <div class="card ${type}-card">
-                        <h3>${identifier} <div class="chip ${esiClass}">${patient.categoria || ''}</div></h3>
+                        <h3>
+                            ${identifier}
+                            <div>
+                                <span class="material-symbols-outlined disabled">lab_research</span>
+                                <span class="material-symbols-outlined disabled">radiology</span>
+                                <span class="material-symbols-outlined disabled">pill</span>
+                                <span class="material-symbols-outlined ${iconClass}">personal_injury</span>
+                                <span class="chip ${esiClass}">${patient.categoria || ''}</span>
+                            </div>
+                        </h3>
                         <p><strong class="${patientNameClass}">${patient.paciente || 'N/A'}</strong> (${patient.edad || ''})</p>
                         <p>${patient.motivoConsulta || ''}</p>
                         <p class="med">Med: ${doctorName}</p>
-                        <p>Tiempo total: ${patient.tiempoAcumulado || ''}</p>
+                        <p class="timer-text">
+                            <span class="material-symbols-outlined timer-icon ${timerColor}">timer</span>${formattedTime}
+                            <span class="material-symbols-outlined inpatient-icon">ward</span>
+                        </p>
                     </div>
                 `;
             }
@@ -411,9 +543,19 @@
                     element.innerHTML = '<div class="card">No hay datos disponibles.</div>';
                     return;
                 }
+
+                // Column name mappings
+                const columnMappings = {
+                    'paciente': 'Paciente',
+                    'edad': 'Edad',
+                    'motivoConsulta': 'Motivo Consulta',
+                    'tiempoEspera': 'Tpo. Espera'
+                };
+
                 let table = "<table><tr>";
                 for (let key in data[0]) {
-                    table += `<th>${key}</th>`;
+                    const displayName = columnMappings[key] || key;  // Use mapping if exists, otherwise use original
+                    table += `<th>${displayName}</th>`;
                 }
                 table += "</tr>";
                 data.forEach((item) => {
@@ -435,17 +577,17 @@
 
             function toCamelCase(str) {
                 if (!str) return '';
-                
+
                 // Split the string into words
                 return str.toLowerCase().split(/\s+/).map(word => {
                     // Get the first character and the rest of the word
                     let firstChar = word.charAt(0);
                     let rest = word.slice(1);
-                    
+
                     // Capitalize the first character, handling Unicode characters
-                    firstChar = firstChar.normalize('NFD').replace(/[\u0300-\u036f]/, '').toUpperCase() + 
+                    firstChar = firstChar.normalize('NFD').replace(/[\u0300-\u036f]/, '').toUpperCase() +
                                 firstChar.normalize('NFD').slice(1);
-                    
+
                     // Combine the capitalized first character with the rest of the word
                     return firstChar + rest;
                 }).join(' ');

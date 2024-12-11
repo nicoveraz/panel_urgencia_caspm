@@ -27,10 +27,47 @@ function processAge(ageString) {
 
 async function scrapeData() {
   try {
-    const url =
-      "http://192.168.250.50/atencion-urgencias-andessalud/urg-caspm/index.php";
+    // Get the main page data
+    const url = "http://192.168.250.50/atencion-urgencias-andessalud/urg-caspm/index.php";
     const response = await axios.get(url, { responseEncoding: "latin1" });
     const $ = cheerio.load(response.data, { decodeEntities: false });
+
+    // Get the box map data
+    const boxMapUrl = "http://192.168.250.50/atencion-urgencias-andessalud/urg-caspm/mapa_box.php";
+    const boxMapResponse = await axios.get(boxMapUrl, { responseEncoding: "latin1" });
+    const $boxMap = cheerio.load(boxMapResponse.data, { decodeEntities: false });
+
+    // Create a map of procedures by patient name
+    const proceduresMap = new Map();
+
+    $boxMap('.box').each((_i, boxElement) => {
+      const name = $boxMap(boxElement).find('p').first().text().replace('Nombre:', '').trim();
+      if (name) {
+        // Normalize the name to match the format from the main page
+        const normalizedName = name
+          .replace(/\s+/g, '')  // Remove all spaces
+          .toUpperCase();  // Convert to uppercase for case-insensitive matching
+
+        const header = $boxMap(boxElement).find('h3');
+        if (header.length) {  // Only process if there's an h3 (active box)
+          const headerHtml = header.html() || '';
+
+          // Look for procedure tags in the header HTML
+          const procEjeMatch = headerHtml.match(/<span class="procedimiento-tag PROC_EJE">(\d*)<\/span>/);
+          const procPenMatch = headerHtml.match(/<span class="procedimiento-tag PROC_PEN">(\d*)<\/span>/);
+
+          const procEjeNum = procEjeMatch ? parseInt(procEjeMatch[1] || '0') : 0;
+          const procPenNum = procPenMatch ? parseInt(procPenMatch[1] || '0') : 0;
+
+          if (procEjeNum > 0 || procPenNum > 0) {
+            proceduresMap.set(normalizedName, {
+              procEje: procEjeNum,
+              procPen: procPenNum
+            });
+          }
+        }
+      }
+    });
 
     const data = {
       PacientesEnEspera: [],
@@ -49,6 +86,23 @@ async function scrapeData() {
 
     // Helper function to decode HTML entities and trim
     const decodeAndTrim = (text) => $("<div>").html(text).text().trim();
+
+    // Helper function to add procedures to patient data
+    const addProcedures = (patientData) => {
+      // Normalize patient name to match the map format
+      const normalizedName = patientData.paciente
+        .replace(/^\(Mutual\)\s*/, '')  // Remove Mutual prefix
+        .replace(/\s+/g, '')  // Remove all spaces
+        .toUpperCase();  // Convert to uppercase for case-insensitive matching
+
+      const procedures = proceduresMap.get(normalizedName) || { procEje: 0, procPen: 0 };
+
+      return {
+        ...patientData,
+        procedimientosEjecutados: procedures.procEje,
+        procedimientosPendientes: procedures.procPen
+      };
+    };
 
     // Process PacientesEnEspera
     $("table")
@@ -92,7 +146,7 @@ async function scrapeData() {
         }
       });
 
-    // Process PacientesEnBox
+    // Process PacientesEnBox with procedures
     $("table")
       .eq(3)
       .find("tr")
@@ -102,7 +156,7 @@ async function scrapeData() {
         if (cols.length >= 9) {
           const paciente = decodeAndTrim($(cols[1]).html());
           if (paciente !== "PACIENTE") {
-            data.PacientesEnBox.push({
+            const patientData = {
               categoria: decodeAndTrim($(cols[0]).html()),
               paciente: paciente,
               edad: processAge(decodeAndTrim($(cols[2]).html())),
@@ -112,7 +166,8 @@ async function scrapeData() {
               tiempoPrevio: decodeAndTrim($(cols[6]).html()),
               tiempoAtencionMedica: decodeAndTrim($(cols[7]).html()),
               tiempoAcumulado: decodeAndTrim($(cols[8]).html()),
-            });
+            };
+            data.PacientesEnBox.push(addProcedures(patientData));
           }
         }
       });
